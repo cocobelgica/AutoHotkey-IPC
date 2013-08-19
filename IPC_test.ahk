@@ -9,6 +9,8 @@ if !(target := WinExist())
 	ExitApp
 DetectHiddenWindows, % dhw
 
+server := new IPC("ahk_id " target, "handler")
+
 Gui, Font, s9, Consolas
 Gui, Add, Edit, w300 r5 -WantReturn
 Gui, Add, Button, xp y+10 w88 h26 Default gSend, Send
@@ -19,12 +21,16 @@ ExitApp
 
 Send:
 GuiControlGet, data,, Edit1
-IPC.send(data, target)
+server.send(data)
 if (data = "quit") {
 	OutputDebug, % A_ScriptName " is exiting."
 	ExitApp
 }
 return
+
+handler(this, data) {
+	OutputDebug, % A_ScriptName ", Recieved Data: " data . " | Sender: " this.target
+}
 
 code() {
 	rcvr =
@@ -32,14 +38,15 @@ code() {
 	`#Include IPC.ahk
 	`#Persistent
 
-	IPC.handler := "handler"
+	host := new IPC("ahk_id " %A_ScriptHwnd%, "handler")
 	return
 
-	handler(COD, sender) {
-		OutputDebug, `% (COD = "quit")
+	handler(this, data) {
+		OutputDebug, `% (data = "quit")
 		              ? A_ScriptName " is exiting."
-		              : "Data: " COD . " | Sender: " sender
-		if (COD = "quit")
+		              : "Data: " data . " | Sender: " this.target
+		;this.send("Data received")
+		if (data = "quit")
 			SetTimer, Exit, -1
 		return
 		Exit:
